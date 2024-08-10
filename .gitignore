@@ -1,2 +1,6 @@
 *.exe
 *.out
+*_analysis.txt
+*_derived.txt
+massif.out*
+*.csv
