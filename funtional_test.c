@@ -63,21 +63,21 @@ int main(int args, char **argv) {
 			// printf("mineN：%d, N：%d\n", mineN, N);
 			if (mineN == 1 && N > 1) {
 				if (Correct == 1) {
-					printf("功能性：%.1f\n", 1.0);
+					printf("%.1f\n", 1.0);
 				}
 				else {
-					printf("功能性：%.1f\n", 0.0);
+					printf("%.1f\n", 0.0);
 				}
 			}
 			else if (mineN == 0) {
-				printf("功能性：%.1f\n", 0.0);
+				printf("%.1f\n", 0.0);
 			}
 			else {
 				double a = Completeness * 15;
 				double b = Correctness * 15;
 				double c = Appropriateness * 15;
 				double d = (int)(((a + b + c) / 3) * 10 + 0.5) / 10.0;	//四捨五入至小數點第一位
-				printf("功能性：%.1f\n", d);
+				printf("%.1f\n", d);
 			}
 		}
 	}
