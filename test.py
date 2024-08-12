@@ -31,12 +31,29 @@ def run_command(command: str) -> tuple[str, str, int]:
     return result.stdout, result.stderr, result.returncode
 
 
+def delete_file(file_path: str):
+    """
+    刪除指定的檔案。
+
+    Args:
+        file_path (str): 欲刪除的檔案路徑。
+
+    Returns:
+        None
+
+    Raises:
+        None
+    """
+    if os.path.exists(file_path):
+        os.remove(file_path)
+
+
 # 主函數
 def main():
     # 編譯 funtional_test.c
-    functional_test_output = "funtional_test.out"
+    functional_test_output = "funtional_test"
     compile_functional_test_command = (
-        f"{C_COMPILER} funtional_test.c {FLAGS} {functional_test_output}"
+        f"{C_COMPILER} funtional_test.c {FLAGS} {functional_test_output}.out"
     )
     stdout, stderr, returncode = run_command(compile_functional_test_command)
     if returncode != 0:
@@ -45,6 +62,12 @@ def main():
 
     # 開始處理 test
     print(f"開始處理 {test} ...")
+
+    # 初始化 test_result 表頭
+    test_result: list[list] = [
+        ["學號", "可讀性", "功能適當性", "執行時間", "記憶體使用量"]
+    ]
+
     # 獲取 test 下所有 學生目錄(stu_dir)
     students = [
         stu_dir for stu_dir in glob.glob(f"./{test}/*") if os.path.isdir(stu_dir)
@@ -69,9 +92,14 @@ def main():
             # 取得檔名的副檔名：".cpp"
             file_extension = os.path.splitext(file_name)[1]
             # 取得檔案所在的目錄："./test4/a1125501"
-            file_dir_name = os.path.dirname(c_cpp_file)
+            file_dir = os.path.dirname(c_cpp_file)
             # 欲輸出檔案路徑 + 檔名(不含副檔名)："./test4/a1125501/a1125501"
-            output = os.path.join(file_dir_name, file_base_name)
+            output = os.path.join(file_dir, file_base_name)
+
+            # 刪除不需要的檔案
+            delete_file(f"{output}_analysis.txt")
+            delete_file(f"{output}_derived.txt")
+            delete_file(f"{output}.out")
 
             # gcc/g++ 編譯命令
             if file_extension in [".c", ".C"]:
@@ -85,6 +113,7 @@ def main():
             # 執行編譯命令
             stdout, stderr, returncode = run_command(compile_command)
             if returncode != 0:
+                test_result.append([file_base_name, None, None, None, None])
                 print(f"{c_cpp_file} 編譯失敗")
                 continue
 
@@ -105,14 +134,33 @@ def main():
                 f"timeout 10s ./{output}.out < ./{test}/input.txt > {output}_derived.txt"
             )
             if returncode == 124:
+                test_result.append([file_base_name, readability, None, None, None])
                 print(f"{c_cpp_file} 執行超時")
+                continue
             else:
-                time_taken = (time.time_ns() - start_time) // 1000000
+                end_time: int = time.time_ns()
+
+            # 功能適當性
+            # 執行 funtional_test.out
+            functional_test_command = f"./{functional_test_output}.out ./{test}/output.txt {output}_derived.txt"
+            stdout, stderr, returncode = run_command(functional_test_command)
+            if returncode != 0:
+                print("functional_test.c 執行失敗")
+            else:
+                # 讀取 功能適當性
+                functionality = float(stdout.strip())
+                # 適當性為 0.0 時不測試 時間 空間
+                if functionality < 15.0:
+                    test_result.append(
+                        [file_base_name, readability, functionality, None, None]
+                    )
+                    print(f"{c_cpp_file} 功能適當性 < 15.0")
+                    continue
+                # 計算執行時間
+                time_taken = (end_time - start_time) // 1_000_000
 
             # 使用 valgrind 測量記憶體使用狀況
-            massif_out_file = os.path.join(
-                file_dir_name, f"massif.out.{file_base_name}"
-            )
+            massif_out_file = os.path.join(file_dir, f"massif.out.{file_base_name}")
             run_command(
                 f"valgrind --tool=massif --stacks=yes --massif-out-file={massif_out_file} {output}.out < ./{test}/input.txt > /dev/null 2> /dev/null"
             )
@@ -130,44 +178,18 @@ def main():
 
             memory_usage = peak
 
-            # 功能適用性
-            # 執行 funtional_test.out
-            functional_test_command = f"./{functional_test_output} ./{test}/input.txt"
-            stdout, stderr, returncode = run_command(functional_test_command)
-            if returncode != 0:
-                print("functional_test.c 執行失敗")
-            else:
-                # 根據 stdout 或其他標準計算功能適用性分數
-                functionality = 15.0  # 假設功能性為 15.0，這裡需要根據實際情況計算
+            test_result.append(
+                [file_base_name, readability, functionality, time_taken, memory_usage]
+            )
+            print(f"{c_cpp_file} 輸出正確")
 
-            # 將 student_results 寫入 CSV 檔案
-            student_results: list[str, float, float, int, int] = [
-                file_base_name,
-                readability,
-                functionality,
-                time_taken,
-                memory_usage,
-            ]
-            student_csv_path = f"{output}.csv"
-            with open(student_csv_path, mode="w", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow(student_results)
+            # 刪除不需要的檔案
+            delete_file(massif_out_file)
 
-            # # 刪除 analysis.txt 檔
-            # if os.path.exists(f"{output}_analysis.txt"):
-            #     os.remove(f"{output}_analysis.txt")
-            # # 刪除 derived.txt 檔
-            # if os.path.exists(f"{output}_derived.txt"):
-            #     os.remove(f"{output}_derived.txt")
-            # # 刪除 csv 檔
-            # if os.path.exists(student_csv_path):
-            #     os.remove(student_csv_path)
-            # # 刪除 massif.out 檔
-            # if os.path.exists(massif_out_file):
-            #     os.remove(massif_out_file)
-            # # 刪除 .out 檔
-            # if os.path.exists(f"{output}.out"):
-            #     os.remove(f"{output}.out")
+    # 將 test_result 寫入 CSV 檔案
+    with open(f"{test}_result.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(test_result)
 
 
 if __name__ == "__main__":
