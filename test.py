@@ -65,7 +65,7 @@ def main():
 
     # 初始化 test_result 表頭
     test_result: list[list] = [
-        ["學號", "可讀性", "功能適當性", "執行時間", "記憶體使用量"]
+        ["學號", "平均錯誤", "功能適當性", "執行時間", "記憶體使用量"]
     ]
 
     # 獲取 test 下所有 學生目錄(stu_dir)
@@ -80,7 +80,7 @@ def main():
         ):
 
             # 初始化 程式碼評估分數
-            readability: float = None
+            errors_num: int = 0
             functionality: float = None
             time_taken: int = None
             memory_usage: int = None
@@ -120,19 +120,24 @@ def main():
                 lines_command = f"wc -l < {c_cpp_file}"
                 stdout, stderr, returncode = run_command(lines_command)
                 lines = int(stdout.decode("utf-8").strip()) + 1
-                cpplint_command = f"cpplint --filter='-legal/copyright' {c_cpp_file} 2>/dev/null | tail -n 1 | grep -o '[0-9]\+'"
+                cpplint_command = f"cpplint --filter='-legal/copyright' {c_cpp_file} 2>/dev/null | tail -n 1"
                 stdout, stderr, returncode = run_command(cpplint_command)
-                errors = int(stdout.decode("utf-8").strip())
-                readability = round((1 / (errors / lines)) * 0.75, 2)
+                if stdout.decode("utf-8").strip().startswith("Total errors found: "):
+                    errors_num = int(stdout.decode("utf-8").strip().split(": ")[1])
+                errors_num = round((errors_num / lines), 2)
 
                 # 計算執行時間
                 start_time: int = time.time_ns()
                 stdout, stderr, returncode = run_command(
                     f"timeout 10s ./{output}.out < ./{test}/input.txt > {output}_derived.txt"
                 )
+                # 執行失敗
+                if returncode != 0:
+                    test_result.append([file_base_name, errors_num, None, None, None])
+                    print(f"{c_cpp_file} 執行失敗")
                 # 執行超時
-                if returncode == 124:
-                    test_result.append([file_base_name, readability, None, None, None])
+                elif returncode == 124:
+                    test_result.append([file_base_name, errors_num, None, None, None])
                     print(f"{c_cpp_file} 執行超時")
                 else:
                     end_time: int = time.time_ns()
@@ -151,7 +156,7 @@ def main():
                         # 適當性 < 15.0 時 不測試 時間 空間
                         if functionality < 15.0:
                             test_result.append(
-                                [file_base_name, readability, functionality, None, None]
+                                [file_base_name, errors_num, functionality, None, None]
                             )
                             print(f"{c_cpp_file} 功能適當性 < 15.0")
                         else:
@@ -175,7 +180,7 @@ def main():
                             test_result.append(
                                 [
                                     file_base_name,
-                                    readability,
+                                    errors_num,
                                     functionality,
                                     time_taken,
                                     memory_usage,
@@ -190,9 +195,9 @@ def main():
             delete_file(f"{output}_analysis.txt")
 
     # 將 test_result 寫入 CSV 檔案
-    with open(f"{test}.csv", "w", newline="") as f:
+    with open(f"{test}_raw.csv", "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(test_result)
+        writer.writerows(test_result)
 
 
 if __name__ == "__main__":
