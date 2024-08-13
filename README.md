@@ -18,3 +18,13 @@ sudo apt install python3 python3-pip
 ```bash
 sudo apt install python3-venv
 ```
+
+- cpplint
+```bash
+sudo apt install cpplint
+```
+
+- valgrind
+```bash
+sudo apt install valgrind
+```
