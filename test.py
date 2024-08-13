@@ -181,8 +181,8 @@ def main():
 
                             snapshots = list()
                             for i in range(0, len(lines), 4):
-                                snapshots.append(sum(lines[i+1:i+4]))
-                                
+                                snapshots.append(sum(lines[i + 1 : i + 4]))
+
                             peak = max(snapshots)
 
                             stdout, stderr, returncode = run_command(
