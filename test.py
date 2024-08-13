@@ -8,7 +8,7 @@ import glob
 C_COMPILER = "gcc"
 CPP_COMPILER = "g++"
 FLAGS = "-o"
-test = "test4"
+test = "test2"
 
 
 # 執行終端機命令的函數
@@ -26,7 +26,7 @@ def run_command(command: str) -> tuple[str, str, int]:
             - returncode (int): 指令執行後的返回碼。
     """
     result = subprocess.run(
-        command, shell=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
     )
     return result.stdout, result.stderr, result.returncode
 
@@ -95,11 +95,8 @@ def main():
             file_dir = os.path.dirname(c_cpp_file)
             # 欲輸出檔案路徑 + 檔名(不含副檔名)："./test4/a1125501/a1125501"
             output = os.path.join(file_dir, file_base_name)
-
-            # 刪除不需要的檔案
-            delete_file(f"{output}_analysis.txt")
-            delete_file(f"{output}_derived.txt")
-            delete_file(f"{output}.out")
+            # massif.out 輸出檔案路徑："./test4/a1125501/massif.out.a1125501"
+            massif_out_file = os.path.join(file_dir, f"massif.out.{file_base_name}")
 
             # gcc/g++ 編譯命令
             if file_extension in [".c", ".C"]:
@@ -111,83 +108,89 @@ def main():
                 continue
 
             # 執行編譯命令
+            print(f"開始編譯 {c_cpp_file} ...")
             stdout, stderr, returncode = run_command(compile_command)
+            # 編譯失敗
             if returncode != 0:
                 test_result.append([file_base_name, None, None, None, None])
                 print(f"{c_cpp_file} 編譯失敗")
-                continue
-
-            # 計算可讀性
-            lines_command = f"wc -l < {c_cpp_file}"
-            stdout, stderr, returncode = run_command(lines_command)
-            lines = int(stdout.strip()) + 1
-
-            cpplint_command = f"cpplint --filter='-legal/copyright' {c_cpp_file} 2>/dev/null | tail -n 1 | grep -o '[0-9]\+'"
-            stdout, stderr, returncode = run_command(cpplint_command)
-            errors = int(stdout.strip())
-
-            readability = round((1 / (errors / lines)) * 0.75, 2)
-
-            # 計算執行時間
-            start_time: int = time.time_ns()
-            stdout, stderr, returncode = run_command(
-                f"timeout 10s ./{output}.out < ./{test}/input.txt > {output}_derived.txt"
-            )
-            if returncode == 124:
-                test_result.append([file_base_name, readability, None, None, None])
-                print(f"{c_cpp_file} 執行超時")
-                continue
             else:
-                end_time: int = time.time_ns()
 
-            # 功能適當性
-            # 執行 funtional_test.out
-            functional_test_command = f"./{functional_test_output}.out ./{test}/output.txt {output}_derived.txt"
-            stdout, stderr, returncode = run_command(functional_test_command)
-            if returncode != 0:
-                print("functional_test.c 執行失敗")
-            else:
-                # 讀取 功能適當性
-                functionality = float(stdout.strip())
-                # 適當性為 0.0 時不測試 時間 空間
-                if functionality < 15.0:
-                    test_result.append(
-                        [file_base_name, readability, functionality, None, None]
-                    )
-                    print(f"{c_cpp_file} 功能適當性 < 15.0")
-                    continue
+                # 計算可讀性
+                lines_command = f"wc -l < {c_cpp_file}"
+                stdout, stderr, returncode = run_command(lines_command)
+                lines = int(stdout.decode("utf-8").strip()) + 1
+                cpplint_command = f"cpplint --filter='-legal/copyright' {c_cpp_file} 2>/dev/null | tail -n 1 | grep -o '[0-9]\+'"
+                stdout, stderr, returncode = run_command(cpplint_command)
+                errors = int(stdout.decode("utf-8").strip())
+                readability = round((1 / (errors / lines)) * 0.75, 2)
+
                 # 計算執行時間
-                time_taken = (end_time - start_time) // 1_000_000
+                start_time: int = time.time_ns()
+                stdout, stderr, returncode = run_command(
+                    f"timeout 10s ./{output}.out < ./{test}/input.txt > {output}_derived.txt"
+                )
+                # 執行超時
+                if returncode == 124:
+                    test_result.append([file_base_name, readability, None, None, None])
+                    print(f"{c_cpp_file} 執行超時")
+                else:
+                    end_time: int = time.time_ns()
+                    time_taken = (end_time - start_time) // 1_000_000
 
-            # 使用 valgrind 測量記憶體使用狀況
-            massif_out_file = os.path.join(file_dir, f"massif.out.{file_base_name}")
-            run_command(
-                f"valgrind --tool=massif --stacks=yes --massif-out-file={massif_out_file} {output}.out < ./{test}/input.txt > /dev/null 2> /dev/null"
-            )
+                    # 功能適當性
+                    # 執行 funtional_test.out
+                    functional_test_command = f"./{functional_test_output}.out ./{test}/output.txt {output}_derived.txt"
+                    stdout, stderr, returncode = run_command(functional_test_command)
+                    if returncode != 0:
+                        print("functional_test.c 執行失敗")
+                        print(stderr.decode("utf-8"))
+                    else:
+                        # 讀取 功能適當性
+                        functionality = float(stdout.decode("utf-8").strip())
+                        # 適當性 < 15.0 時 不測試 時間 空間
+                        if functionality < 15.0:
+                            test_result.append(
+                                [file_base_name, readability, functionality, None, None]
+                            )
+                            print(f"{c_cpp_file} 功能適當性 < 15.0")
+                        else:
+                            # 記憶體使用量
+                            run_command(
+                                f"valgrind --tool=massif --stacks=yes --massif-out-file={massif_out_file} {output}.out < ./{test}/input.txt > /dev/null 2> /dev/null"
+                            )
+                            # 解析 massif 輸出
+                            peak: int = 0
+                            with open(massif_out_file, "r") as f:
+                                for line in f:
+                                    if (
+                                        "mem_heap_B=" in line
+                                        or "mem_heap_extra_B=" in line
+                                        or "mem_stacks_B=" in line
+                                    ):
+                                        peak += int(line.split("=")[1])
+                            memory_usage = peak
 
-            # 解析 massif 輸出
-            peak: int = 0
-            with open(massif_out_file, "r") as f:
-                for line in f:
-                    if (
-                        "mem_heap_B=" in line
-                        or "mem_heap_extra_B=" in line
-                        or "mem_stacks_B=" in line
-                    ):
-                        peak += int(line.split("=")[1])
-
-            memory_usage = peak
-
-            test_result.append(
-                [file_base_name, readability, functionality, time_taken, memory_usage]
-            )
-            print(f"{c_cpp_file} 輸出正確")
+                            # 輸出正確
+                            test_result.append(
+                                [
+                                    file_base_name,
+                                    readability,
+                                    functionality,
+                                    time_taken,
+                                    memory_usage,
+                                ]
+                            )
+                            print(f"{c_cpp_file} 輸出正確")
 
             # 刪除不需要的檔案
+            delete_file(f"{output}_derived.txt")
+            delete_file(f"{output}.out")
             delete_file(massif_out_file)
+            delete_file(f"{output}_analysis.txt")
 
     # 將 test_result 寫入 CSV 檔案
-    with open(f"{test}_result.csv", "w", newline="") as f:
+    with open(f"{test}.csv", "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(test_result)
 
