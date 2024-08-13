@@ -1,1 +1,0 @@
-輸入正整數N第N個ugly 0number是a
