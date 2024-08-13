@@ -8,7 +8,7 @@ import glob
 C_COMPILER = "gcc"
 CPP_COMPILER = "g++"
 FLAGS = "-o"
-test = "test2"
+test = "test4"
 
 
 # 執行終端機命令的函數
@@ -131,6 +131,7 @@ def main():
                 stdout, stderr, returncode = run_command(
                     f"timeout 10s ./{output}.out < ./{test}/input.txt > {output}_derived.txt"
                 )
+                end_time: int = time.time_ns()
                 # 執行失敗
                 if returncode != 0:
                     test_result.append([file_base_name, errors_num, None, None, None])
@@ -140,7 +141,6 @@ def main():
                     test_result.append([file_base_name, errors_num, None, None, None])
                     print(f"{c_cpp_file} 執行超時")
                 else:
-                    end_time: int = time.time_ns()
                     time_taken = (end_time - start_time) // 1_000_000
 
                     # 功能適當性
@@ -148,6 +148,9 @@ def main():
                     functional_test_command = f"./{functional_test_output}.out ./{test}/output.txt {output}_derived.txt"
                     stdout, stderr, returncode = run_command(functional_test_command)
                     if returncode != 0:
+                        test_result.append(
+                            [file_base_name, errors_num, None, None, None]
+                        )
                         print("functional_test.c 執行失敗")
                         print(stderr.decode("utf-8"))
                     else:
