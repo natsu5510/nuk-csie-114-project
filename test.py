@@ -8,7 +8,7 @@ import glob
 C_COMPILER = "gcc"
 CPP_COMPILER = "g++"
 FLAGS = "-o"
-test = "test4"
+test = "test5"
 
 
 # 執行終端機命令的函數
@@ -168,16 +168,31 @@ def main():
                                 f"valgrind --tool=massif --stacks=yes --massif-out-file={massif_out_file} {output}.out < ./{test}/input.txt > /dev/null 2> /dev/null"
                             )
                             # 解析 massif 輸出
-                            peak: int = 0
+                            lines = list()
                             with open(massif_out_file, "r") as f:
                                 for line in f:
                                     if (
-                                        "mem_heap_B=" in line
+                                        "snapshot=" in line
+                                        or "mem_heap_B=" in line
                                         or "mem_heap_extra_B=" in line
                                         or "mem_stacks_B=" in line
                                     ):
-                                        peak += int(line.split("=")[1])
-                            memory_usage = peak
+                                        lines.append(int(line.split("=")[1]))
+
+                            snapshots = list()
+                            for i in range(0, len(lines), 4):
+                                snapshots.append(sum(lines[i+1:i+4]))
+                                
+                            peak = max(snapshots)
+
+                            stdout, stderr, returncode = run_command(
+                                f"size ./{output}.out"
+                            )
+
+                            lines = stdout.splitlines()
+                            parts = lines[1].split()
+                            total = sum(int(part) for part in parts[:3])
+                            memory_usage = peak + total
 
                             # 輸出正確
                             test_result.append(
