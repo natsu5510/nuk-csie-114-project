@@ -2,7 +2,11 @@
 
 ## 環境配置
 
+### 作業系統
+
 - Ubuntu 22.04 或 WSL2
+
+### 安裝套件
 
 - gcc/g++
 ```bash
@@ -27,4 +31,10 @@ sudo apt install cpplint
 - valgrind
 ```bash
 sudo apt install valgrind
+```
+
+## 編譯與執行
+
+```bash
+python3 test.py
 ```
