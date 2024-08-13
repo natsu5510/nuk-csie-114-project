@@ -2,7 +2,7 @@
 
 ## 環境配置
 
-- Ubuntu 20.04 或 WSL2
+- Ubuntu 22.04 或 WSL2
 
 - gcc/g++
 ```bash
