@@ -8,7 +8,7 @@ import glob
 C_COMPILER = "gcc"
 CPP_COMPILER = "g++"
 FLAGS = "-o"
-test = "test5"
+test = "test3"
 
 
 # 執行終端機命令的函數
@@ -65,7 +65,7 @@ def main():
 
     # 初始化 test_result 表頭
     test_result: list[list] = [
-        ["學號", "平均錯誤", "功能適當性", "執行時間", "記憶體使用量"]
+        ["id", "fault_per_line", "functional_score", "execution_time", "memory_usage"]
     ]
 
     # 獲取 test 下所有 學生目錄(stu_dir)
