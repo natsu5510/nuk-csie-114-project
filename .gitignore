@@ -5,3 +5,4 @@
 *_derived.txt
 massif.out*
 *.csv
+!test[12345]_raw.csv
