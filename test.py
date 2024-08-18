@@ -71,6 +71,8 @@ def run_code_test(test: str):
     test_result: list[list] = [
         ["id", "fault_per_line", "functional_score", "execution_time", "memory_usage"]
     ]
+    # 功能適當性 全錯 分數為 0.0
+    FUNCTIONAL_SCORE_ZERO = 0.0
 
     # 獲取 test 下所有 學生目錄(stu_dir)
     students = [
@@ -84,9 +86,9 @@ def run_code_test(test: str):
         ):
 
             # 初始化 程式碼評估分數
-            errors_num: int = 0
-            functionality: float = None
-            time_taken: int = None
+            fault_per_line: float = None
+            functional_score: float = None
+            execution_time: int = None
             memory_usage: int = None
 
             # 取得檔名："a1125501.cpp"
@@ -126,9 +128,10 @@ def run_code_test(test: str):
                 lines = int(stdout.decode("utf-8").strip()) + 1
                 cpplint_command = f"cpplint --filter='-legal/copyright' {c_cpp_file} 2>/dev/null | tail -n 1"
                 stdout, stderr, returncode = run_command(cpplint_command)
+                errors_num: int = 0
                 if stdout.decode("utf-8").strip().startswith("Total errors found: "):
                     errors_num = int(stdout.decode("utf-8").strip().split(": ")[1])
-                errors_num = round((errors_num / lines), 2)
+                fault_per_line = round((errors_num / lines), 2)
 
                 # 計算執行時間
                 start_time: int = time.time_ns()
@@ -138,14 +141,24 @@ def run_code_test(test: str):
                 end_time: int = time.time_ns()
                 # 執行失敗
                 if returncode != 0:
-                    test_result.append([file_base_name, errors_num, None, None, None])
+                    test_result.append(
+                        [file_base_name, fault_per_line, None, None, None]
+                    )
                     print(f"{c_cpp_file} 執行失敗")
                 # 執行超時
                 elif returncode == 124:
-                    test_result.append([file_base_name, errors_num, None, None, None])
+                    test_result.append(
+                        [
+                            file_base_name,
+                            fault_per_line,
+                            None,
+                            None,
+                            None,
+                        ]
+                    )
                     print(f"{c_cpp_file} 執行超時")
                 else:
-                    time_taken = (end_time - start_time) // 1_000_000
+                    execution_time = (end_time - start_time) // 1_000_000
 
                     # 功能適當性
                     # 執行 funtional_test.out
@@ -153,17 +166,29 @@ def run_code_test(test: str):
                     stdout, stderr, returncode = run_command(functional_test_command)
                     if returncode != 0:
                         test_result.append(
-                            [file_base_name, errors_num, None, None, None]
+                            [
+                                file_base_name,
+                                fault_per_line,
+                                FUNCTIONAL_SCORE_ZERO,
+                                None,
+                                None,
+                            ]
                         )
                         print("functional_test.c 執行失敗")
                         print(stderr.decode("utf-8"))
                     else:
                         # 讀取 功能適當性
-                        functionality = float(stdout.decode("utf-8").strip())
+                        functional_score = float(stdout.decode("utf-8").strip())
                         # 適當性 < 15.0 時 不測試 時間 空間
-                        if functionality < 15.0:
+                        if functional_score < 15.0:
                             test_result.append(
-                                [file_base_name, errors_num, functionality, None, None]
+                                [
+                                    file_base_name,
+                                    fault_per_line,
+                                    functional_score,
+                                    None,
+                                    None,
+                                ]
                             )
                             print(f"{c_cpp_file} 功能適當性 < 15.0")
                         else:
@@ -202,9 +227,9 @@ def run_code_test(test: str):
                             test_result.append(
                                 [
                                     file_base_name,
-                                    errors_num,
-                                    functionality,
-                                    time_taken,
+                                    fault_per_line,
+                                    functional_score,
+                                    execution_time,
                                     memory_usage,
                                 ]
                             )
