@@ -8,7 +8,6 @@ import glob
 C_COMPILER = "gcc"
 CPP_COMPILER = "g++"
 FLAGS = "-o"
-test = "test3"
 
 
 # 執行終端機命令的函數
@@ -49,7 +48,12 @@ def delete_file(file_path: str):
 
 
 # 主函數
-def main():
+def run_code_test(test: str):
+    # 檢查 test 是否存在
+    if not os.path.exists(test):
+        print(f"{test} 不存在")
+        return
+
     # 編譯 funtional_test.c
     functional_test_output = "funtional_test"
     compile_functional_test_command = (
@@ -219,4 +223,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test = "test4"
+    run_code_test(test)
