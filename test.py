@@ -4,6 +4,9 @@ import subprocess
 import time
 import glob
 
+# 第幾次測試
+TEST = "test5"
+
 # 定義 C 和 C++ 編譯器
 C_COMPILER = "gcc"
 CPP_COMPILER = "g++"
@@ -248,5 +251,4 @@ def run_code_test(test: str):
 
 
 if __name__ == "__main__":
-    test = "test4"
-    run_code_test(test)
+    run_code_test(TEST)
