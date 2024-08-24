@@ -5,7 +5,7 @@ import time
 import glob
 
 # 第幾次測試
-TEST = "test5"
+TEST = "test3"
 
 # 定義 C 和 C++ 編譯器
 C_COMPILER = "gcc"
@@ -161,7 +161,7 @@ def run_code_test(test: str):
                     )
                     print(f"{c_cpp_file} 執行超時")
                 else:
-                    execution_time = (end_time - start_time) // 1_000_000
+                    execution_time = (end_time - start_time)
 
                     # 功能適當性
                     # 執行 funtional_test.out
