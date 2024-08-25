@@ -6,3 +6,4 @@
 massif.out*
 *.csv
 !test[12345]_raw.csv
+!test[12345]_result.csv
