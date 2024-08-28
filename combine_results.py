@@ -4,14 +4,14 @@ import pandas as pd
 # 要合併的 CSV 檔案列表
 CSV_FILES = [
     "test1_result.csv",
-    # "test2_result.csv",
+    "test2_result.csv",
     "test3_result.csv",
-    # "test4_result.csv",
-    # "test5_result.csv",
+    "test4_result.csv",
+    "test5_result.csv",
 ]
 
 # 要合併的方式 (inner, outer, left, right)
-MERGE_METHOD = "inner"
+MERGE_METHOD = "outer"
 
 
 def check_csv_files_exist():
@@ -22,10 +22,11 @@ def check_csv_files_exist():
     return True
 
 
-def strip_csv_file(csv_file: pd.DataFrame) -> pd.DataFrame:
-    csv_file.columns = csv_file.columns.str.strip()
-    csv_file = csv_file.map(lambda x: x.strip() if isinstance(x, str) else x)
-    return csv_file
+def strip_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """去除 DataFrame 的多餘空格"""
+    df.columns = df.columns.str.strip()
+    df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
+    return df
 
 
 def combine_csv_files(output_file_name="combined_results.csv"):
@@ -42,7 +43,7 @@ def combine_csv_files(output_file_name="combined_results.csv"):
         df = pd.read_csv(csv_file)
 
         # 去除多餘空格
-        df = strip_csv_file(df)
+        df = strip_dataframe(df)
 
         # 只保留 'ID' 和 'total' 欄位
         df = df[["ID", "total"]].rename(columns={"total": csv_file.split("_")[0]})

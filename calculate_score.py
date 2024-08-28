@@ -15,13 +15,10 @@ C_CLASS_LOWER_BOUND = 5
 D_CLASS_SCORE = 0
 
 
-def strip_and_sort(df: pd.DataFrame) -> pd.DataFrame:
-    # 去除多餘空格
+def strip_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """去除 DataFrame 的多餘空格"""
     df.columns = df.columns.str.strip()
     df = df.map(lambda x: x.strip() if isinstance(x, str) else x)
-
-    # 按 id 排序 並 重新編碼索引
-    df = df.sort_values(by="id").reset_index(drop=True)
     return df
 
 
@@ -30,7 +27,7 @@ def read_test_csv(test: str) -> pd.DataFrame:
     df = pd.read_csv(f"{test}_raw.csv")
 
     # 去除多餘空格 並 排序
-    df = strip_and_sort(df)
+    df = strip_dataframe(df)
 
     # 定義 各欄位的 數字型別
     df["fault_per_line"] = pd.to_numeric(df["fault_per_line"], errors="coerce")

@@ -5,7 +5,16 @@ import time
 import glob
 
 # 第幾次測試
-TEST = "test3"
+TEST = "test5"
+
+# CSV 表頭
+CSV_HEADER = [
+    "id",
+    "fault_per_line",
+    "functional_score",
+    "execution_time",
+    "memory_usage",
+]
 
 # 定義 C 和 C++ 編譯器
 C_COMPILER = "gcc"
@@ -70,10 +79,9 @@ def run_code_test(test: str):
     # 開始處理 test
     print(f"開始處理 {test} ...")
 
-    # 初始化 test_result 表頭
-    test_result: list[list] = [
-        ["id", "fault_per_line", "functional_score", "execution_time", "memory_usage"]
-    ]
+    # 存放學生程式碼評估數據
+    test_result: list[list] = []
+
     # 功能適當性 全錯 分數為 0.0
     FUNCTIONAL_SCORE_ZERO = 0.0
 
@@ -161,7 +169,7 @@ def run_code_test(test: str):
                     )
                     print(f"{c_cpp_file} 執行超時")
                 else:
-                    execution_time = (end_time - start_time)
+                    execution_time = end_time - start_time
 
                     # 功能適當性
                     # 執行 funtional_test.out
@@ -244,10 +252,13 @@ def run_code_test(test: str):
             delete_file(massif_out_file)
             delete_file(f"{output}_analysis.txt")
 
+    # 按照 ID 排序
+    test_result_sorted = sorted(test_result, key=lambda x: x[0])
     # 將 test_result 寫入 CSV 檔案
     with open(f"{test}_raw.csv", "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerows(test_result)
+        writer.writerow(CSV_HEADER)  # 寫入表頭
+        writer.writerows(test_result_sorted)  # 寫入資料
 
 
 if __name__ == "__main__":
