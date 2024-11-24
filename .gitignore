@@ -5,3 +5,7 @@
 *_derived.txt
 massif.out*
 *.csv
+*.cpp
+*.c
+venv
+__pycache__

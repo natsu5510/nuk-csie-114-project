@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Evaluation</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* 隱藏轉圈圈的區域（初始狀態） */
+        #loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 20px;
+            color: #555;
+        }
+
+        /* 轉圈圈動畫 */
+        #spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* h1 {
+            color: red;
+        } */
+    </style>
+</head>
+<body>
+    <h1>程式碼分析工具</h1>
+    <form id="codeForm">
+        <label for="code">請輸入程式碼：</label><br>
+        <textarea id="code" name="code" rows="10" cols="50" required></textarea><br><br>
+
+        <label for="language">選擇程式語言：</label>
+        <select id="language" name="language" required>
+            <option value="C">C</option>
+            <option value="C++">C++</option>
+        </select><br><br>
+
+        <button type="submit">提交</button>
+    </form>
+
+    <!-- 轉圈圈提示 -->
+    <div id="loading">
+        <div id="spinner"></div>
+        <p>分析中，請稍候...</p>
+    </div>
+
+    <h2>分析結果</h2>
+    <div id="result">
+        <p>正確率：<span id="accuracy">-</span></p>
+        <p>執行時間：<span id="execution_time">-</span></p>
+        <p>記憶體使用量：<span id="memory_usage">-</span></p>
+        <p>平均每行錯誤數：<span id="error_per_line">-</span></p>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $("#codeForm").on("submit", function (event) {
+                event.preventDefault();
+                const formData = $(this).serialize();
+
+                // 顯示轉圈圈提示
+                $("#loading").show();
+
+                // 發送請求
+                $.post("/submit", formData, function (data) {
+                    // 更新結果
+                    $("#accuracy").text(data.accuracy);
+                    $("#execution_time").text(data.execution_time);
+                    $("#memory_usage").text(data.memory_usage);
+                    $("#error_per_line").text(data.error_per_line);
+
+                    // 隱藏轉圈圈提示
+                    $("#loading").hide();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
